@@ -22,8 +22,17 @@
   "dependencies": {
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/mapped-types": "*",
+    "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^10.0.0",
     "@prisma/client": "^6.6.0",
+    "bcrypt": "^5.1.1",
+    "cookie-parser": "^1.4.7",
+    "dayjs": "^1.11.13",
+    "dotenv": "^16.4.7",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1"
   },

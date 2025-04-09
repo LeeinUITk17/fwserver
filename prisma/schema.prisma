@@ -6,10 +6,31 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+model Token {
+  id           String      @id @default(uuid())
+  userId       String
+  refreshToken String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  
+  user         User     @relation(fields: [userId], references: [id])
+}
+model User {
+  id        String      @id @default(uuid())
+  name      String
+  password  String   
+  email     String   @unique
+  phone     String   @unique
+  address   String?
+  isAdmin   Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+  tokens     Token[]
+  }
