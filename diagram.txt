@@ -1,0 +1,92 @@
+// Generated for dbdiagram.io from Prisma schema
+
+Table User {
+  id        uuid [pk]
+  name      varchar
+  password  varchar
+  email     varchar [unique]
+  phone     varchar [unique]
+  address   varchar
+  isAdmin   boolean [default: false]
+  isActive  boolean [default: true]
+  createdAt datetime 
+  updatedAt datetime 
+}
+
+Table Token {
+  id           uuid [pk]
+  userId       uuid
+  refreshToken varchar [unique]
+  expiresAt    datetime
+  createdAt    datetime 
+
+ 
+}
+
+Table Zone {
+  id        uuid [pk]
+  name      varchar
+  location  varchar
+  createdAt datetime 
+}
+
+Table Sensor {
+  id          uuid [pk]
+  name        varchar
+  type        varchar
+  location    varchar
+  threshold   float
+  sensitivity int
+  status      varchar
+  zone        varchar
+  createdAt   datetime 
+  zoneId      uuid
+
+  
+}
+
+Table SensorLog {
+  id          uuid [pk]
+  sensorId    uuid
+  temperature float
+  humidity    float
+  createdAt   datetime 
+
+  
+}
+
+Table Alert {
+  id         uuid [pk]
+  message    varchar
+  sensorId   uuid
+  userId     uuid
+  imageUrl   varchar
+  createdAt  datetime 
+  status     AlertStatus [default: 'PENDING']
+  viaEmail   boolean [default: false]
+
+  
+}
+
+Table Camera {
+  id        uuid [pk]
+  name      varchar
+  url       varchar
+  zone      varchar
+  createdAt datetime 
+  zoneId    uuid
+
+  
+}
+
+Enum AlertStatus {
+  PENDING
+  RESOLVED
+  IGNORED
+}
+ Ref: Token.userId > User.id
+ Ref: Camera.zoneId > Zone.id
+ Ref: Alert.sensorId > Sensor.id
+  Ref: Alert.userId > User.id
+  Ref: SensorLog.sensorId > Sensor.id
+  Ref: Sensor.zoneId > Zone.id

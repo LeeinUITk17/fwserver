@@ -8,6 +8,7 @@ import { ZoneModule } from './zone/zone.module';
 import { SensorModule } from './sensor/sensor/sensor.module';
 import { LogModule } from './sensor/log/log.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
     ZoneModule,
     SensorModule,
     LogModule,
+    MailModule,
     CloudinaryModule,
   ],
   providers: [AppService],
