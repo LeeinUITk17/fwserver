@@ -33,4 +33,73 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
   tokens     Token[]
+  alerts      Alert[]
   }
+  model Zone {
+  id        String   @id @default(uuid())
+  name      String
+  location  String   // Có thể là toạ độ, sơ đồ...
+  createdAt DateTime @default(now())
+
+  sensors   Sensor[]
+  cameras   Camera[]
+}
+
+model Sensor {
+  id          String   @id @default(uuid())
+  name        String
+  type        String   // e.g. "temperature", "smoke", etc.
+  location    String
+  threshold   Float    // Max value before triggering alert
+  sensitivity Int      // Sensitivity level
+  status      String   // Active, Inactive, Error
+  createdAt   DateTime @default(now())
+  zoneId     String
+  zone       Zone   @relation(fields: [zoneId], references: [id])
+
+  alerts      Alert[]
+  logs        SensorLog[]
+}
+
+model SensorLog {
+  id         String   @id @default(uuid())
+  sensor     Sensor   @relation(fields: [sensorId], references: [id])
+  sensorId   String
+  temperature Float?
+  humidity    Float?
+  createdAt   DateTime @default(now())
+}
+
+model Alert {
+  id         String   @id @default(uuid())
+  message    String
+  sensor     Sensor   @relation(fields: [sensorId], references: [id])
+  sensorId   String
+  user       User?    @relation(fields: [userId], references: [id])
+  userId     String?
+  imageUrl   String?  // Cloudinary image
+  createdAt  DateTime @default(now())
+  status     AlertStatus @default(PENDING)
+  viaEmail   Boolean  @default(false)
+}
+
+model Camera {
+  id        String   @id @default(uuid())
+  name      String
+  url       String   // RTSP or video URL
+  createdAt DateTime @default(now())
+  zoneId     String
+  zone       Zone   @relation(fields: [zoneId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  SUPERVISOR
+  USER
+}
+
+enum AlertStatus {
+  PENDING
+  RESOLVED
+  IGNORED
+}
