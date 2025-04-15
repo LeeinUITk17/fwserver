@@ -17,7 +17,7 @@ import * as path from 'path';
         },
       },
       defaults: {
-        from: '"Alert System" <no-reply@yourdomain.com>',
+        from: '"Alert System"',
       },
       template: {
         dir: path.join(__dirname, 'templates'),

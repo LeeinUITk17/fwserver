@@ -4,6 +4,7 @@ import {
   ExecutionContext,
   ForbiddenException,
 } from '@nestjs/common';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class AdminGuard implements CanActivate {
@@ -15,7 +16,7 @@ export class AdminGuard implements CanActivate {
     if (!request.user) {
       throw new ForbiddenException('User is not authenticated.');
     }
-    if (!request.user.isAdmin) {
+    if (request.user.role !== Role.ADMIN) {
       throw new ForbiddenException('Access denied: Admins only.');
     }
     return true;

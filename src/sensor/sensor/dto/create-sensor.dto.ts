@@ -1,5 +1,5 @@
 import { IsString, IsNumber } from 'class-validator';
-
+import { SensorStatus } from '@prisma/client';
 export class CreateSensorDto {
   @IsString()
   name: string;
@@ -17,7 +17,7 @@ export class CreateSensorDto {
   sensitivity: number; // Sensitivity level
 
   @IsString()
-  status: string; // e.g., "Active", "Inactive", "Error"
+  status: SensorStatus; // e.g., "Active", "Inactive", "Error"
 
   @IsString()
   zoneId: string; // Foreign key to associate with a Zone

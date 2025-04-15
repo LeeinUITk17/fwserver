@@ -1,16 +1,49 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateZoneDto } from './dto/create-zone.dto';
 import { UpdateZoneDto } from './dto/update-zone.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ZoneService {
+  private readonly logger = new Logger(ZoneService.name);
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createZoneDto: CreateZoneDto) {
     return this.prisma.zone.create({
       data: createZoneDto,
     });
+  }
+  async createBulk(
+    createZoneDtos: CreateZoneDto[],
+  ): Promise<{ count: number }> {
+    if (!createZoneDtos || createZoneDtos.length === 0) {
+      return { count: 0 };
+    }
+
+    try {
+      const result = await this.prisma.zone.createMany({
+        data: createZoneDtos,
+        skipDuplicates: true,
+      });
+
+      this.logger.log(`Successfully created ${result.count} zones in bulk.`);
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `Failed to bulk create zones: ${error.message}`,
+        error.stack,
+      );
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        this.logger.error(`Prisma Error Code: ${error.code}`);
+      }
+      throw new InternalServerErrorException('Could not create zones in bulk.');
+    }
   }
 
   async findAll() {

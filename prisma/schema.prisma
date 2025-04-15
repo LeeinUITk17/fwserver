@@ -21,6 +21,11 @@ model Token {
   
   user         User     @relation(fields: [userId], references: [id])
 }
+enum Role {
+  ADMIN
+  SUPERVISOR 
+  USER
+}
 model User {
   id        String      @id @default(uuid())
   name      String
@@ -28,7 +33,7 @@ model User {
   email     String   @unique
   phone     String   @unique
   address   String?
-  isAdmin   Boolean  @default(false)
+  role      Role     @default(USER)  
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
@@ -38,7 +43,10 @@ model User {
   model Zone {
   id        String   @id @default(uuid())
   name      String
-  location  String   // Có thể là toạ độ, sơ đồ...
+  description String? 
+  city        String?  
+  latitude    Float?
+  longitude   Float?
   createdAt DateTime @default(now())
 
   sensors   Sensor[]
@@ -52,7 +60,7 @@ model Sensor {
   location    String
   threshold   Float    // Max value before triggering alert
   sensitivity Int      // Sensitivity level
-  status      String   // Active, Inactive, Error
+  status      SensorStatus @default(ACTIVE)
   createdAt   DateTime @default(now())
   zoneId     String
   zone       Zone   @relation(fields: [zoneId], references: [id])
@@ -73,10 +81,13 @@ model SensorLog {
 model Alert {
   id         String   @id @default(uuid())
   message    String
+  origin     AlertOrigin @default(SENSOR_THRESHOLD)
   sensor     Sensor   @relation(fields: [sensorId], references: [id])
   sensorId   String
   user       User?    @relation(fields: [userId], references: [id])
   userId     String?
+  cameraId   String?
+  camera     Camera?  @relation(fields: [cameraId], references: [id])
   imageUrl   String?  // Cloudinary image
   createdAt  DateTime @default(now())
   status     AlertStatus @default(PENDING)
@@ -89,17 +100,24 @@ model Camera {
   url       String   // RTSP or video URL
   createdAt DateTime @default(now())
   zoneId     String
+  alerts     Alert[]
   zone       Zone   @relation(fields: [zoneId], references: [id])
-}
-
-enum Role {
-  ADMIN
-  SUPERVISOR
-  USER
 }
 
 enum AlertStatus {
   PENDING
   RESOLVED
   IGNORED
+}
+enum SensorStatus {
+  ACTIVE    // Đang hoạt động bình thường
+  INACTIVE  // Ngừng hoạt động (do cấu hình)
+  ERROR     // Có lỗi phần cứng hoặc kết nối
+  MAINTENANCE // Đang bảo trì
+}
+enum AlertOrigin {
+  SENSOR_THRESHOLD // Vượt ngưỡng cảm biến
+  SENSOR_ERROR     // Lỗi cảm biến (ví dụ status = ERROR)
+  ML_DETECTION     // Model AI phát hiện
+  MANUAL_INPUT     // Người dùng tạo thủ công
 }

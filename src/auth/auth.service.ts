@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as dayjs from 'dayjs';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -108,15 +109,15 @@ export class AuthService {
     return { message: 'Logout successful' };
   }
   async rulePermission(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { isAdmin: true },
+    const user = await this.prisma.user.findFirst({
+      where: { role: Role.ADMIN },
+      select: { role: true },
     });
 
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
-    if (!user.isAdmin) {
+    if (user.role !== Role.ADMIN) {
       throw new ForbiddenException(
         'You do not have permission for this action',
       );

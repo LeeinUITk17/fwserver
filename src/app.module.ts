@@ -10,8 +10,17 @@ import { LogModule } from './sensor/log/log.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { MailModule } from './mail/mail.module';
 
+import { ScheduleModule } from '@nestjs/schedule';
+import { ConfigModule } from '@nestjs/config';
+import { HttpModule } from '@nestjs/axios';
+import { SimulationModule } from './simulation/simulation.module';
+
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
+    HttpModule,
+    SimulationModule,
     AuthModule,
     PrismaModule,
     AlertModule,

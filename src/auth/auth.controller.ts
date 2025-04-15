@@ -54,28 +54,41 @@ export class AuthController {
   }
 
   @Post('logout')
-  async logout(@Res() res: Response) {
-    res.clearCookie('accessToken');
-    res.clearCookie('refreshToken');
-    return res.send({ message: 'Logged out successfully' });
+  async logout(@Res({ passthrough: true }) res: Response) {
+    // Use passthrough
+    // Clear cookies on client with matching options
+    const cookieOptions = {
+      httpOnly: true,
+      secure: false, // Match the setting during creation (false for HTTP dev)
+      sameSite: 'lax' as const, // Explicitly type 'lax' or 'strict' or 'none'
+      path: '/', // <<< MATCHING PATH
+    };
+    res.clearCookie('accessToken', cookieOptions);
+    res.clearCookie('refreshToken', cookieOptions);
+    return { message: 'Logged out successfully' };
   }
 
   private setAuthCookies(
     res: Response,
     tokens: { accessToken: string; refreshToken: string },
   ) {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const secureFlag = isProduction; // Use false for HTTP dev
+
     res.cookie('accessToken', tokens.accessToken, {
       httpOnly: true,
-      secure: true, // Set to `true` in production (for HTTPS)
-      sameSite: 'strict',
-      maxAge: 15 * 60 * 1000, // 15 minutes
+      secure: secureFlag,
+      sameSite: 'lax', // 'lax' is generally good for dev
+      path: '/', // <<< ADD THIS LINE
+      maxAge: 15 * 60 * 1000,
     });
 
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      secure: secureFlag,
+      sameSite: 'lax',
+      path: '/', // <<< ADD THIS LINE
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
   }
 }

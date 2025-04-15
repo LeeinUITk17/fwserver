@@ -3,6 +3,7 @@ import { Logger } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import * as passport from 'passport';
+import { Request, Response, NextFunction } from 'express';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
@@ -14,6 +15,16 @@ async function bootstrap() {
 
   // Middleware hỗ trợ cookies
   app.use(cookieParser());
+
+  // --- ADD GLOBAL LOGGING MIDDLEWARE ---
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    console.log(`[Global Middleware] Request Path: ${req.path}`);
+    console.log('[Global Middleware] Parsed Cookies:', req.cookies); // Log parsed cookies
+    console.log('[Global Middleware] Raw Cookie Header:', req.headers.cookie); // Log raw header
+    next(); // Continue to next middleware/handler
+  });
+  // --------------------------------------
+
   app.use(passport.initialize());
   // Lắng nghe trên cổng 3000
   const port = 8000;

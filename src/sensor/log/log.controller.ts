@@ -1,24 +1,17 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
+import { Controller, Get, Param, Delete, UseGuards } from '@nestjs/common';
 import { LogService } from './log.service';
-import { CreateLogDto } from './dto/create-log.dto';
-import { UpdateLogDto } from './dto/update-log.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { AdminGuard } from 'src/auth/admin.gaurd';
 
 @Controller('logs')
+@UseGuards(AuthGuard('jwt'), AdminGuard)
 export class LogController {
   constructor(private readonly logService: LogService) {}
 
-  @Post()
-  async create(@Body() createLogDto: CreateLogDto) {
-    return this.logService.create(createLogDto);
-  }
+  // @Post()
+  // async create(@Body() createLogDto: CreateLogDto) {
+  //   return this.logService.create(createLogDto);
+  // }
 
   @Get()
   async findAll() {
@@ -30,10 +23,10 @@ export class LogController {
     return this.logService.findOne(id);
   }
 
-  @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateLogDto: UpdateLogDto) {
-    return this.logService.update(id, updateLogDto);
-  }
+  // @Patch(':id')
+  // async update(@Param('id') id: string, @Body() updateLogDto: UpdateLogDto) {
+  //   return this.logService.update(id, updateLogDto);
+  // }
 
   @Delete(':id')
   async remove(@Param('id') id: string) {

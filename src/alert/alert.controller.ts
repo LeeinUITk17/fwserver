@@ -3,21 +3,29 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
-  Delete,
+  UploadedFile,
+  UseInterceptors,
+  UseGuards,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AlertService } from './alert.service';
 import { CreateAlertDto } from './dto/create-alert.dto';
-import { UpdateAlertDto } from './dto/update-alert.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { AdminGuard } from 'src/auth/admin.gaurd';
 
 @Controller('alerts')
+@UseGuards(AuthGuard('jwt'), AdminGuard)
 export class AlertController {
   constructor(private readonly alertService: AlertService) {}
 
   @Post()
-  async create(@Body() createAlertDto: CreateAlertDto) {
-    return this.alertService.create(createAlertDto);
+  @UseInterceptors(FileInterceptor('file')) // Handle file uploads
+  async create(
+    @Body() createAlertDto: CreateAlertDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.alertService.create(createAlertDto, file);
   }
 
   @Get()
@@ -30,16 +38,16 @@ export class AlertController {
     return this.alertService.findOne(id);
   }
 
-  @Patch(':id')
-  async update(
-    @Param('id') id: string,
-    @Body() updateAlertDto: UpdateAlertDto,
-  ) {
-    return this.alertService.update(id, updateAlertDto);
-  }
+  // @Patch(':id')
+  // async update(
+  //   @Param('id') id: string,
+  //   @Body() updateAlertDto: UpdateAlertDto,
+  // ) {
+  //   return this.alertService.update(id, updateAlertDto);
+  // }
 
-  @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return this.alertService.remove(id);
-  }
+  // @Delete(':id')
+  // async remove(@Param('id') id: string) {
+  //   return this.alertService.remove(id);
+  // }
 }

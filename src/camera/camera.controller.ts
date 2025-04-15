@@ -6,12 +6,16 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { CameraService } from './camera.service';
 import { CreateCameraDto } from './dto/create-camera.dto';
 import { UpdateCameraDto } from './dto/update-camera.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { AdminGuard } from 'src/auth/admin.gaurd';
 
 @Controller('cameras')
+@UseGuards(AuthGuard('jwt'), AdminGuard)
 export class CameraController {
   constructor(private readonly cameraService: CameraService) {}
 
