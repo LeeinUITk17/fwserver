@@ -18,9 +18,9 @@ async function bootstrap() {
 
   // --- ADD GLOBAL LOGGING MIDDLEWARE ---
   app.use((req: Request, res: Response, next: NextFunction) => {
-    console.log(`[Global Middleware] Request Path: ${req.path}`);
-    console.log('[Global Middleware] Parsed Cookies:', req.cookies); // Log parsed cookies
-    console.log('[Global Middleware] Raw Cookie Header:', req.headers.cookie); // Log raw header
+    // console.log(`[Global Middleware] Request Path: ${req.path}`);
+    // console.log('[Global Middleware] Parsed Cookies:', req.cookies); // Log parsed cookies
+    // console.log('[Global Middleware] Raw Cookie Header:', req.headers.cookie); // Log raw header
     next(); // Continue to next middleware/handler
   });
   // --------------------------------------

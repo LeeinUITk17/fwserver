@@ -7,6 +7,7 @@ import {
   UploadedFile,
   UseInterceptors,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AlertService } from './alert.service';
@@ -29,8 +30,10 @@ export class AlertController {
   }
 
   @Get()
-  async findAll() {
-    return this.alertService.findAll();
+  async findAll(@Query() query: any) {
+    if (query.page) query.page = parseInt(query.page, 10);
+    if (query.limit) query.limit = parseInt(query.limit, 10);
+    return this.alertService.findAll(query);
   }
 
   @Get(':id')
