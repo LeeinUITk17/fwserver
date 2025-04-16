@@ -18,7 +18,10 @@ import { AdminGuard } from 'src/auth/admin.gaurd';
 @UseGuards(AuthGuard('jwt'), AdminGuard)
 export class SensorController {
   constructor(private readonly sensorService: SensorService) {}
-
+  @Get('stats') // Route: GET /sensors/stats
+  async getStats() {
+    return this.sensorService.getStats();
+  }
   @Post()
   async create(@Body() createSensorDto: CreateSensorDto) {
     return this.sensorService.create(createSensorDto);

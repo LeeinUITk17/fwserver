@@ -28,7 +28,10 @@ export class AlertController {
   ) {
     return this.alertService.create(createAlertDto, file);
   }
-
+  @Get('stats') // Route: GET /alerts/stats
+  async getStats() {
+    return this.alertService.getStats();
+  }
   @Get()
   async findAll(@Query() query: any) {
     if (query.page) query.page = parseInt(query.page, 10);

@@ -12,6 +12,10 @@ export class LogController {
   // async create(@Body() createLogDto: CreateLogDto) {
   //   return this.logService.create(createLogDto);
   // }
+  @Get('stats') // Route: GET /logs/stats
+  async getStats() {
+    return this.logService.getStats();
+  }
 
   @Get()
   async findAll() {

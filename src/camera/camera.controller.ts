@@ -18,7 +18,10 @@ import { AdminGuard } from 'src/auth/admin.gaurd';
 @UseGuards(AuthGuard('jwt'), AdminGuard)
 export class CameraController {
   constructor(private readonly cameraService: CameraService) {}
-
+  @Get('stats') // Route: GET /cameras/stats
+  async getStats() {
+    return this.cameraService.getStats();
+  }
   @Post()
   async create(@Body() createCameraDto: CreateCameraDto) {
     return this.cameraService.create(createCameraDto);

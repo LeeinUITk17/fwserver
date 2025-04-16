@@ -1,10 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateLogDto } from './dto/create-log.dto';
 import { UpdateLogDto } from './dto/update-log.dto';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class LogService {
+  private readonly logger = new Logger(LogService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createLogDto: CreateLogDto) {
@@ -16,7 +24,7 @@ export class LogService {
   async findAll() {
     return this.prisma.sensorLog.findMany({
       include: {
-        sensor: true, // Include related sensor data
+        sensor: true,
       },
     });
   }
@@ -25,7 +33,7 @@ export class LogService {
     const log = await this.prisma.sensorLog.findUnique({
       where: { id },
       include: {
-        sensor: true, // Include related sensor data
+        sensor: true,
       },
     });
 
@@ -59,5 +67,44 @@ export class LogService {
     return this.prisma.sensorLog.delete({
       where: { id },
     });
+  }
+
+  async getStats(rangeHours: number = 24): Promise<{
+    averageTemperature: number | null;
+    averageHumidity: number | null;
+  }> {
+    this.logger.log(
+      `Fetching sensor log stats for the last ${rangeHours} hours...`,
+    );
+
+    try {
+      const startTime = dayjs().subtract(rangeHours, 'hour').toDate();
+
+      const result = await this.prisma.sensorLog.aggregate({
+        _avg: {
+          temperature: true,
+          humidity: true,
+        },
+        where: {
+          createdAt: {
+            gte: startTime,
+          },
+          temperature: { not: null },
+        },
+      });
+
+      const stats = {
+        averageTemperature: result._avg.temperature,
+        averageHumidity: result._avg.humidity,
+      };
+
+      this.logger.log(`Sensor log stats fetched: ${JSON.stringify(stats)}`);
+      return stats;
+    } catch (error) {
+      this.logger.error('Failed to fetch sensor log stats:', error.stack);
+      throw new InternalServerErrorException(
+        'Could not fetch sensor log statistics.',
+      );
+    }
   }
 }

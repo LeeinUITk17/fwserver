@@ -7,19 +7,18 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateSensorDto } from './dto/create-sensor.dto';
 import { UpdateSensorDto } from './dto/update-sensor.dto';
-import { Prisma } from '@prisma/client';
+import { Prisma, SensorStatus } from '@prisma/client';
 
 @Injectable()
 export class SensorService {
   private readonly logger = new Logger(SensorService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createSensorDto: CreateSensorDto) {
     const { zoneId, ...rest } = createSensorDto;
-
     const createData: any = { ...rest };
 
-    // If zoneId is provided, transform it to Prisma's expected format
     if (zoneId) {
       createData.zone = { connect: { id: zoneId } };
     }
@@ -28,6 +27,7 @@ export class SensorService {
       data: createData,
     });
   }
+
   async createBulk(
     createSensorDtos: CreateSensorDto[],
   ): Promise<{ count: number }> {
@@ -80,11 +80,44 @@ export class SensorService {
     }
   }
 
-  async findAll() {
-    return this.prisma.sensor.findMany({
+  async findAll(query?: {
+    zoneId?: string;
+    status?: SensorStatus;
+    page?: number;
+    limit?: number;
+  }) {
+    const page = query?.page || 1;
+    const limit = query?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.SensorWhereInput = {};
+    if (query?.zoneId) where.zoneId = query.zoneId;
+    if (query?.status) where.status = query.status;
+
+    const sensors = await this.prisma.sensor.findMany({
+      where,
+      skip,
+      take: limit,
       include: {
-        zone: true, // Include related zone data
+        zone: true,
+        logs: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+        },
       },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return sensors.map((sensor) => {
+      const { logs, ...restOfSensor } = sensor;
+      return {
+        ...restOfSensor,
+        latestLog: logs?.[0] || null,
+      };
     });
   }
 
@@ -92,7 +125,13 @@ export class SensorService {
     const sensor = await this.prisma.sensor.findUnique({
       where: { id },
       include: {
-        zone: true, // Include related zone data
+        zone: true,
+        logs: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 20,
+        },
       },
     });
 
@@ -105,10 +144,8 @@ export class SensorService {
 
   async update(id: string, updateSensorDto: UpdateSensorDto) {
     const { zoneId, ...rest } = updateSensorDto;
-
     const updateData: any = { ...rest };
 
-    // If zoneId is provided, transform it to Prisma's expected format
     if (zoneId) {
       updateData.zone = { connect: { id: zoneId } };
     }
@@ -135,5 +172,58 @@ export class SensorService {
     return this.prisma.sensor.delete({
       where: { id },
     });
+  }
+
+  async getStats(): Promise<{
+    total: number;
+    active: number;
+    inactive: number;
+    error: number;
+    maintenance: number;
+  }> {
+    this.logger.log('Fetching sensor stats...');
+    try {
+      const statusCounts = await this.prisma.sensor.groupBy({
+        by: ['status'],
+        _count: {
+          status: true,
+        },
+      });
+
+      const stats = {
+        total: 0,
+        active: 0,
+        inactive: 0,
+        error: 0,
+        maintenance: 0,
+      };
+
+      statusCounts.forEach((item) => {
+        const count = item._count.status;
+        stats.total += count;
+        switch (item.status) {
+          case SensorStatus.ACTIVE:
+            stats.active = count;
+            break;
+          case SensorStatus.INACTIVE:
+            stats.inactive = count;
+            break;
+          case SensorStatus.ERROR:
+            stats.error = count;
+            break;
+          case SensorStatus.MAINTENANCE:
+            stats.maintenance = count;
+            break;
+        }
+      });
+
+      this.logger.log(`Sensor stats fetched: ${JSON.stringify(stats)}`);
+      return stats;
+    } catch (error) {
+      this.logger.error('Failed to fetch sensor stats:', error.stack);
+      throw new InternalServerErrorException(
+        'Could not fetch sensor statistics.',
+      );
+    }
   }
 }

@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  Logger,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateAlertDto } from './dto/create-alert.dto';
 import * as player from 'play-sound';
@@ -9,12 +14,10 @@ interface FindAllAlertsQuery {
   page?: number;
   limit?: number;
   status?: AlertStatus;
-  startDate?: string; // YYYY-MM-DD
-  endDate?: string; // YYYY-MM-DD
-  // sortBy?: string;
-  // sortOrder?: 'asc' | 'desc';
-  // sensorId?: string;
+  startDate?: string;
+  endDate?: string;
 }
+
 @Injectable()
 export class AlertService {
   private readonly logger = new Logger(AlertService.name);
@@ -34,11 +37,9 @@ export class AlertService {
     let imageUrl: string | undefined = undefined;
 
     if (file) {
-      this.logger.log(`File received for alert creation, attempting upload...`);
       try {
         const uploadResult = await this.cloudinary.uploadFile(file);
         imageUrl = uploadResult.secure_url;
-        this.logger.log(`Image uploaded successfully: ${imageUrl}`);
       } catch (uploadError) {
         this.logger.error(
           `Cloudinary upload failed: ${uploadError.message}`,
@@ -46,8 +47,6 @@ export class AlertService {
         );
         imageUrl = undefined;
       }
-    } else {
-      this.logger.log(`No file provided for alert creation.`);
     }
 
     const { sensorId, userId, ...rest } = createAlertDto;
@@ -66,7 +65,6 @@ export class AlertService {
       const newAlert = await this.prisma.alert.create({
         data: createData,
       });
-      this.logger.log(`Alert ${newAlert.id} created in database.`);
       return newAlert;
     } catch (dbError) {
       this.logger.error(
@@ -80,12 +78,10 @@ export class AlertService {
   async findAll(
     query: FindAllAlertsQuery,
   ): Promise<{ data: any[]; total: number }> {
-    // Trả về cấu trúc mới
     const page = query.page || 1;
     const limit = query.limit || 10;
     const skip = (page - 1) * limit;
 
-    // Xây dựng điều kiện WHERE động
     const where: Prisma.AlertWhereInput = {};
     if (query.status) {
       where.status = query.status;
@@ -93,33 +89,23 @@ export class AlertService {
     if (query.startDate || query.endDate) {
       where.createdAt = {};
       if (query.startDate) {
-        where.createdAt.gte = new Date(query.startDate); // >= start date
+        where.createdAt.gte = new Date(query.startDate);
       }
       if (query.endDate) {
-        // Thêm 1 ngày để bao gồm cả ngày kết thúc
         const endDate = new Date(query.endDate);
         endDate.setDate(endDate.getDate() + 1);
-        where.createdAt.lt = endDate; // < end date + 1 day
+        where.createdAt.lt = endDate;
       }
     }
-    // Thêm các điều kiện lọc khác nếu cần (vd: where.sensorId = query.sensorId)
 
-    // Xây dựng điều kiện ORDER BY động (ví dụ)
-    // const orderBy: Prisma.AlertOrderByWithRelationInput = {};
-    // const sortBy = query.sortBy || 'createdAt';
-    // const sortOrder = query.sortOrder || 'desc';
-    // orderBy[sortBy] = sortOrder;
-
-    // Sử dụng transaction để lấy cả data và total count hiệu quả
     const [alerts, total] = await this.prisma.$transaction([
       this.prisma.alert.findMany({
         where,
         skip: skip,
         take: limit,
         orderBy: {
-          createdAt: 'desc', // Mặc định sắp xếp mới nhất trước
+          createdAt: 'desc',
         },
-        // Include các relations cần thiết cho frontend
         include: {
           sensor: {
             include: {
@@ -127,16 +113,14 @@ export class AlertService {
             },
           },
           user: {
-            // Include user nếu cần hiển thị người xử lý
             select: { id: true, name: true, email: true },
           },
-          // camera: true, // Include camera nếu cần
         },
       }),
-      this.prisma.alert.count({ where }), // Đếm tổng số bản ghi khớp điều kiện WHERE
+      this.prisma.alert.count({ where }),
     ]);
 
-    return { data: alerts, total: total }; // Trả về đúng cấu trúc
+    return { data: alerts, total: total };
   }
 
   async findOne(id: string) {
@@ -156,44 +140,26 @@ export class AlertService {
     return alert;
   }
 
-  // async update(id: string, updateAlertDto: UpdateAlertDto) {
-  //   const alert = await this.prisma.alert.findUnique({ where: { id } });
+  async getStats(): Promise<{
+    pending: number;
+    resolvedToday?: number;
+    totalToday?: number;
+  }> {
+    try {
+      const pendingCount = await this.prisma.alert.count({
+        where: { status: AlertStatus.PENDING },
+      });
 
-  //   if (!alert) {
-  //     throw new NotFoundException(`Alert with ID ${id} not found`);
-  //   }
+      const stats = {
+        pending: pendingCount,
+      };
 
-  //   const { sensorId, userId, cameraId, ...rest } = updateAlertDto;
-
-  //   const updateData: any = { ...rest };
-
-  //   if (sensorId) {
-  //     updateData.sensor = { connect: { id: sensorId } };
-  //   }
-
-  //   if (userId) {
-  //     updateData.user = { connect: { id: userId } };
-  //   }
-
-  //   if (cameraId) {
-  //     updateData.camera = { connect: { id: cameraId } };
-  //   }
-
-  //   return this.prisma.alert.update({
-  //     where: { id },
-  //     data: updateData,
-  //   });
-  // }
-
-  // async remove(id: string) {
-  //   const alert = await this.prisma.alert.findUnique({ where: { id } });
-
-  //   if (!alert) {
-  //     throw new NotFoundException(`Alert with ID ${id} not found`);
-  //   }
-
-  //   return this.prisma.alert.delete({
-  //     where: { id },
-  //   });
-  // }
+      return stats;
+    } catch (error) {
+      this.logger.error('Failed to fetch alert stats:', error.stack);
+      throw new InternalServerErrorException(
+        'Could not fetch alert statistics.',
+      );
+    }
+  }
 }

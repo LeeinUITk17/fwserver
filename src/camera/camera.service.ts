@@ -1,10 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCameraDto } from './dto/create-camera.dto';
 import { UpdateCameraDto } from './dto/update-camera.dto';
 
 @Injectable()
 export class CameraService {
+  private readonly logger = new Logger(CameraService.name);
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createCameraDto: CreateCameraDto) {
@@ -59,5 +65,19 @@ export class CameraService {
     return this.prisma.camera.delete({
       where: { id },
     });
+  }
+  async getStats(): Promise<{ total: number }> {
+    this.logger.log('Fetching camera stats...');
+    try {
+      const totalCount = await this.prisma.camera.count();
+      const stats = { total: totalCount };
+      this.logger.log(`Camera stats fetched: ${JSON.stringify(stats)}`);
+      return stats;
+    } catch (error) {
+      this.logger.error('Failed to fetch camera stats:', error.stack);
+      throw new InternalServerErrorException(
+        'Could not fetch camera statistics.',
+      );
+    }
   }
 }
