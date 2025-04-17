@@ -100,12 +100,7 @@ export class SensorService {
       take: limit,
       include: {
         zone: true,
-        logs: {
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 1,
-        },
+        logs: { orderBy: { createdAt: 'desc' }, take: 1 },
       },
       orderBy: {
         createdAt: 'desc',
@@ -126,12 +121,7 @@ export class SensorService {
       where: { id },
       include: {
         zone: true,
-        logs: {
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 20,
-        },
+        logs: { orderBy: { createdAt: 'desc' }, take: 1 },
       },
     });
 

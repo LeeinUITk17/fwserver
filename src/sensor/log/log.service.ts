@@ -8,6 +8,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateLogDto } from './dto/create-log.dto';
 import { UpdateLogDto } from './dto/update-log.dto';
 import * as dayjs from 'dayjs';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class LogService {
@@ -105,6 +106,73 @@ export class LogService {
       throw new InternalServerErrorException(
         'Could not fetch sensor log statistics.',
       );
+    }
+  }
+  async getChartData(
+    sensorIds: string[],
+    startTime?: Date,
+    endTime?: Date,
+  ): Promise<
+    Record<
+      string,
+      { timestamp: Date; temperature: number | null; humidity: number | null }[]
+    >
+  > {
+    this.logger.log(`Fetching chart data for sensors: ${sensorIds.join(', ')}`);
+
+    const defaultStartTime = dayjs().subtract(24, 'hour').toDate();
+
+    const where: Prisma.SensorLogWhereInput = {
+      sensorId: {
+        in: sensorIds,
+      },
+      createdAt: {
+        gte: startTime || defaultStartTime,
+        lte: endTime || new Date(),
+      },
+    };
+
+    try {
+      const logs = await this.prisma.sensorLog.findMany({
+        where: where,
+        select: {
+          sensorId: true,
+          createdAt: true,
+          temperature: true,
+          humidity: true,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      });
+
+      const chartData: Record<
+        string,
+        {
+          timestamp: Date;
+          temperature: number | null;
+          humidity: number | null;
+        }[]
+      > = {};
+
+      logs.forEach((log) => {
+        if (!chartData[log.sensorId]) {
+          chartData[log.sensorId] = [];
+        }
+        chartData[log.sensorId].push({
+          timestamp: log.createdAt,
+          temperature: log.temperature,
+          humidity: log.humidity,
+        });
+      });
+
+      this.logger.log(
+        `Returning chart data for ${Object.keys(chartData).length} sensors.`,
+      );
+      return chartData;
+    } catch (error) {
+      this.logger.error('Failed to fetch chart data:', error.stack);
+      throw new InternalServerErrorException('Could not fetch chart data.');
     }
   }
 }

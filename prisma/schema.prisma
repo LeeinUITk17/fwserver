@@ -65,6 +65,9 @@ model Sensor {
   zoneId     String
   zone       Zone   @relation(fields: [zoneId], references: [id])
 
+  latitude    Float?
+  longitude   Float?
+
   alerts      Alert[]
   logs        SensorLog[]
 }
@@ -101,6 +104,10 @@ model Camera {
   createdAt DateTime @default(now())
   zoneId     String
   alerts     Alert[]
+
+  latitude    Float?
+  longitude   Float?
+
   zone       Zone   @relation(fields: [zoneId], references: [id])
 }
 

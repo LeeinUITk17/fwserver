@@ -3,7 +3,8 @@ import { Module } from '@nestjs/common';
 import { MailService } from './mail.service';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import * as path from 'path';
-
+const templateDir = path.resolve(process.cwd(), 'src', 'mail', 'templates');
+console.log('>>> Mail Template Path (Resolved from CWD):', templateDir);
 @Module({
   imports: [
     MailerModule.forRoot({
@@ -20,7 +21,7 @@ import * as path from 'path';
         from: '"Alert System"',
       },
       template: {
-        dir: path.join(__dirname, 'templates'),
+        dir: templateDir,
         adapter: new HandlebarsAdapter(),
         options: {
           strict: true,

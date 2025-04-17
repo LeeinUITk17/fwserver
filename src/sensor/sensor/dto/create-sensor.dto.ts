@@ -1,4 +1,10 @@
-import { IsString, IsNumber } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsLongitude,
+  IsLatitude,
+} from 'class-validator';
 import { SensorStatus } from '@prisma/client';
 export class CreateSensorDto {
   @IsString()
@@ -21,4 +27,14 @@ export class CreateSensorDto {
 
   @IsString()
   zoneId: string; // Foreign key to associate with a Zone
+
+  @IsOptional()
+  @IsNumber()
+  @IsLatitude()
+  latitude?: number | null;
+
+  @IsOptional()
+  @IsNumber()
+  @IsLongitude()
+  longitude?: number | null;
 }

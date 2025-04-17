@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsNumber } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsLatitude,
+  IsLongitude,
+} from 'class-validator';
 
 export class CreateZoneDto {
   @IsString()
@@ -14,9 +20,11 @@ export class CreateZoneDto {
 
   @IsOptional()
   @IsNumber()
-  latitude?: number;
+  @IsLatitude()
+  latitude?: number | null;
 
   @IsOptional()
   @IsNumber()
-  longitude?: number;
+  @IsLongitude()
+  longitude?: number | null;
 }
