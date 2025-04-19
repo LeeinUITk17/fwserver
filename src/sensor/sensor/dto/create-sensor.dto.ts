@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsLongitude,
   IsLatitude,
+  IsEnum,
 } from 'class-validator';
 import { SensorStatus } from '@prisma/client';
 export class CreateSensorDto {
@@ -22,7 +23,8 @@ export class CreateSensorDto {
   @IsNumber()
   sensitivity: number; // Sensitivity level
 
-  @IsString()
+  @IsOptional()
+  @IsEnum(SensorStatus)
   status: SensorStatus; // e.g., "Active", "Inactive", "Error"
 
   @IsString()

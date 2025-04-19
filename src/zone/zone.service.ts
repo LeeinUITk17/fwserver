@@ -95,4 +95,16 @@ export class ZoneService {
       where: { id },
     });
   }
+  async findList() {
+    this.logger.log('Fetching zone list (id, name)...');
+    return this.prisma.zone.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+  }
 }

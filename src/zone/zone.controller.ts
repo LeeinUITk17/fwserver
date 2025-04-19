@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { ZoneService } from './zone.service';
 import { CreateZoneDto } from './dto/create-zone.dto';
@@ -45,5 +46,13 @@ export class ZoneController {
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.zoneService.remove(id);
+  }
+  @Get()
+  async findAllOrList(@Query('fields') fields?: string) {
+    if (fields === 'id,name') {
+      return this.zoneService.findList();
+    } else {
+      return this.zoneService.findAll();
+    }
   }
 }

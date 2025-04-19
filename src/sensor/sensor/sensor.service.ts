@@ -134,22 +134,41 @@ export class SensorService {
 
   async update(id: string, updateSensorDto: UpdateSensorDto) {
     const { zoneId, ...rest } = updateSensorDto;
-    const updateData: any = { ...rest };
-
-    if (zoneId) {
-      updateData.zone = { connect: { id: zoneId } };
-    }
 
     const sensor = await this.prisma.sensor.findUnique({ where: { id } });
-
     if (!sensor) {
       throw new NotFoundException(`Sensor with ID ${id} not found`);
     }
 
-    return this.prisma.sensor.update({
-      where: { id },
-      data: updateData,
-    });
+    const updateData: Prisma.SensorUpdateInput = { ...rest };
+
+    if (zoneId) {
+      const zoneExists = await this.prisma.zone.findUnique({
+        where: { id: zoneId },
+        select: { id: true },
+      });
+      if (!zoneExists) {
+        throw new NotFoundException(`Zone with ID ${zoneId} not found`);
+      }
+      updateData.zone = { connect: { id: zoneId } };
+    }
+
+    this.logger.log(
+      `Updating sensor ${id} with data: ${JSON.stringify(updateData)}`,
+    );
+    try {
+      return await this.prisma.sensor.update({
+        where: { id },
+        data: updateData,
+        include: {
+          zone: true,
+          logs: { orderBy: { createdAt: 'desc' }, take: 1 },
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to update sensor ${id}:`, error.stack);
+      throw new InternalServerErrorException('Could not update sensor.');
+    }
   }
 
   async remove(id: string) {
