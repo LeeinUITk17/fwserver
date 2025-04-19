@@ -37,7 +37,7 @@ export class WeatherApiSimulationService {
     }
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_30_MINUTES)
   async handleCron() {
     if (!this.apiKey) {
       this.logger.warn(

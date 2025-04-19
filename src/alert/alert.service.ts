@@ -124,11 +124,12 @@ export class AlertService {
   }
 
   async findOne(id: string) {
+    this.logger.log(`Fetching details for alert ID: ${id}`);
     const alert = await this.prisma.alert.findUnique({
       where: { id },
       include: {
-        sensor: true,
-        user: true,
+        sensor: { include: { zone: true } },
+        user: { select: { id: true, name: true, email: true } },
         camera: true,
       },
     });
@@ -136,7 +137,6 @@ export class AlertService {
     if (!alert) {
       throw new NotFoundException(`Alert with ID ${id} not found`);
     }
-
     return alert;
   }
 
@@ -160,6 +160,48 @@ export class AlertService {
       throw new InternalServerErrorException(
         'Could not fetch alert statistics.',
       );
+    }
+  }
+
+  async updateStatus(
+    alertId: string,
+    newStatus: AlertStatus,
+    userId: string,
+  ): Promise<Alert> {
+    this.logger.log(
+      `Updating status for alert ${alertId} to ${newStatus} by user ${userId}`,
+    );
+    try {
+      const existingAlert = await this.prisma.alert.findUnique({
+        where: { id: alertId },
+      });
+      if (!existingAlert) {
+        throw new NotFoundException(`Alert with ID ${alertId} not found`);
+      }
+
+      const updatedAlert = await this.prisma.alert.update({
+        where: { id: alertId },
+        data: {
+          status: newStatus,
+          userId: userId,
+        },
+        include: {
+          sensor: { include: { zone: true } },
+          user: { select: { id: true, name: true, email: true } },
+          camera: true,
+        },
+      });
+      this.logger.log(`Alert ${alertId} status updated to ${newStatus}`);
+      return updatedAlert;
+    } catch (error) {
+      this.logger.error(
+        `Failed to update status for alert ${alertId}:`,
+        error.stack,
+      );
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Could not update alert status.');
     }
   }
 }
