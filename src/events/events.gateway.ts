@@ -27,11 +27,11 @@ export class EventsGateway
 
   private logger: Logger = new Logger('EventsGateway');
 
-  afterInit(server: Server) {
+  afterInit(_server: Server) {
     this.logger.log('WebSocket Gateway Initialized');
   }
 
-  handleConnection(client: Socket, ...args: any[]) {
+  handleConnection(client: Socket, ..._args: any[]) {
     this.logger.log(`Client connected: ${client.id}`);
   }
 

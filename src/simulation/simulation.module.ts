@@ -5,8 +5,17 @@ import { WeatherApiSimulationService } from './WeatherApiSimulationService';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { MailModule } from 'src/mail/mail.module';
 import { AlertModule } from 'src/alert/alert.module';
+import { EventsModule } from 'src/events/events.module';
+import { EventsGateway } from 'src/events/events.gateway';
 @Module({
-  imports: [HttpModule, ConfigModule, PrismaModule, MailModule, AlertModule],
-  providers: [WeatherApiSimulationService],
+  imports: [
+    HttpModule,
+    ConfigModule,
+    PrismaModule,
+    MailModule,
+    AlertModule,
+    EventsModule,
+  ],
+  providers: [WeatherApiSimulationService, EventsGateway],
 })
 export class SimulationModule {}

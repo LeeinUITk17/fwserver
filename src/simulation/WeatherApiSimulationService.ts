@@ -9,6 +9,8 @@ import { AxiosError } from 'axios';
 import { AlertService } from '../alert/alert.service';
 import { MailService } from '../mail/mail.service';
 import { CreateAlertDto } from '../alert/dto/create-alert.dto';
+import { EventsGateway } from 'src/events/events.gateway';
+import type { Alert } from '@prisma/client';
 
 const SENSOR_TYPE_TEMPERATURE = 'TEMPERATURE';
 const SENSOR_TYPE_HUMIDITY = 'HUMIDITY';
@@ -25,6 +27,7 @@ export class WeatherApiSimulationService {
     private readonly configService: ConfigService,
     private readonly alertService: AlertService,
     private readonly mailService: MailService,
+    private readonly eventsGateway: EventsGateway,
   ) {
     this.apiKey = this.configService.get<string>('WEATHERAPI_API_KEY');
     if (!this.apiKey) {
@@ -34,7 +37,7 @@ export class WeatherApiSimulationService {
     }
   }
 
-  @Cron(CronExpression.EVERY_30_MINUTES)
+  @Cron(CronExpression.EVERY_MINUTE)
   async handleCron() {
     if (!this.apiKey) {
       this.logger.warn(
@@ -43,11 +46,6 @@ export class WeatherApiSimulationService {
       return;
     }
     this.logger.log('Running WeatherAPI-based sensor simulation...');
-
-    // type SensorForSimulation = Pick<
-    //   Sensor,
-    //   'id' | 'name' | 'type' | 'location' | 'threshold' | 'zoneId' | 'status'
-    // >;
 
     const zones = await this.prisma.zone.findMany({
       where: {
@@ -215,8 +213,6 @@ export class WeatherApiSimulationService {
     },
     log: SensorLog,
   ) {
-    if (!log) return;
-
     let alertMessage: string | null = null;
 
     if (
@@ -227,7 +223,6 @@ export class WeatherApiSimulationService {
       log.temperature >= sensor.threshold
     ) {
       alertMessage = `Nhiệt độ ${log.temperature.toFixed(1)}°C vượt ngưỡng ${sensor.threshold.toFixed(1)}°C cho cảm biến '${sensor.name}' tại '${sensor.location}'.`;
-      // Removed unused assignment to thresholdValue
       this.logger.warn(
         `ALERT CONDITION MET (Temperature): Sensor ${sensor.id}, Value ${log.temperature}, Threshold ${sensor.threshold}`,
       );
@@ -246,21 +241,25 @@ export class WeatherApiSimulationService {
         return;
       }
 
-      this.logger.log(
-        `Proceeding to create new alert for sensor ${sensor.id}...`,
-      );
-      let newAlert;
+      let createdAlert: Alert | null = null;
       try {
         const createAlertDtoData: CreateAlertDto = {
           message: alertMessage,
           sensorId: sensor.id,
           viaEmail: true,
         };
-        newAlert = await this.alertService.create(createAlertDtoData);
-        this.logger.log(
-          `Created Alert ${newAlert.id} for sensor ${sensor.id}.`,
-        );
-      } catch (alertCreateError) {
+        createdAlert = await this.alertService.create(createAlertDtoData);
+        if (createdAlert) {
+          this.logger.log(
+            `Created Alert ${createdAlert.id} for sensor ${sensor.id}.`,
+          );
+        } else {
+          this.logger.error(
+            `AlertService.create returned null/undefined for sensor ${sensor.id}`,
+          );
+          return;
+        }
+      } catch (alertCreateError: any) {
         this.logger.error(
           `Failed to create Alert for sensor ${sensor.id}: ${alertCreateError.message}`,
           alertCreateError.stack,
@@ -268,47 +267,63 @@ export class WeatherApiSimulationService {
         return;
       }
 
-      if (newAlert) {
-        try {
-          const usersToNotify = await this.prisma.user.findMany({
-            where: { role: Role.ADMIN, isActive: true },
-            select: { email: true, id: true },
-          });
-
-          if (usersToNotify.length > 0) {
-            this.logger.log(
-              `Notifying ${usersToNotify.length} users for alert ${newAlert.id}.`,
-            );
-            const subject = `🔥 Cảnh báo khẩn cấp: ${sensor.name}`;
-            for (const user of usersToNotify) {
-              try {
-                await this.mailService.sendAlertEmail(
-                  user.email,
-                  subject,
-                  alertMessage,
-                  null,
-                );
-                this.logger.log(
-                  `Sent alert email to ${user.email} for alert ${newAlert.id}.`,
-                );
-              } catch (mailError) {
-                this.logger.error(
-                  `Failed to send email to ${user.email} for alert ${newAlert.id}: ${mailError.message}`,
-                  mailError.stack,
-                );
-              }
-            }
-          } else {
-            this.logger.warn(
-              `No active admin users found to notify for alert ${newAlert.id}.`,
-            );
-          }
-        } catch (userFetchError) {
-          this.logger.error(
-            `Failed to fetch users for notification (Alert ${newAlert.id}): ${userFetchError.message}`,
-            userFetchError.stack,
+      try {
+        const alertToSend = await this.prisma.alert.findUnique({
+          where: { id: createdAlert.id },
+          include: { sensor: { select: { name: true } } },
+        });
+        if (alertToSend) {
+          this.eventsGateway.sendNewAlert(alertToSend);
+        } else {
+          this.logger.warn(
+            `Could not find newly created alert ${createdAlert.id} to send via WebSocket.`,
           );
         }
+      } catch (wsError: any) {
+        this.logger.error(
+          `Failed to emit WebSocket event for alert ${createdAlert.id}: ${wsError.message}`,
+          wsError.stack,
+        );
+      }
+
+      try {
+        const usersToNotify = await this.prisma.user.findMany({
+          where: { role: Role.ADMIN, isActive: true },
+          select: { email: true, id: true },
+        });
+
+        if (usersToNotify.length > 0) {
+          this.logger.log(
+            `Notifying ${usersToNotify.length} users for alert ${createdAlert.id}.`,
+          );
+          const subject = `🔥 Cảnh báo khẩn cấp: ${sensor.name}`;
+          await Promise.allSettled(
+            usersToNotify.map((user) => {
+              return this.mailService
+                .sendAlertEmail(user.email, subject, alertMessage!, null)
+                .then(() => {
+                  this.logger.log(
+                    `Sent alert email to ${user.email} for alert ${createdAlert!.id}.`,
+                  );
+                })
+                .catch((mailError) => {
+                  this.logger.error(
+                    `Failed to send email to ${user.email} for alert ${createdAlert!.id}: ${mailError.message}`,
+                    mailError.stack,
+                  );
+                });
+            }),
+          );
+        } else {
+          this.logger.warn(
+            `No active admin users found to notify for alert ${createdAlert.id}.`,
+          );
+        }
+      } catch (userFetchError: any) {
+        this.logger.error(
+          `Failed to fetch users for notification (Alert ${createdAlert.id}): ${userFetchError.message}`,
+          userFetchError.stack,
+        );
       }
     }
   }
