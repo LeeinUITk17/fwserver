@@ -53,6 +53,9 @@ export class AuthService {
     if (!user || !(await bcrypt.compare(data.password, user.password))) {
       throw new UnauthorizedException('Invalid login credentials');
     }
+    if (!user.isActive) {
+      throw new UnauthorizedException('User is not active');
+    }
 
     return this.generateTokens(user.id);
   }
