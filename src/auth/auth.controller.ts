@@ -6,10 +6,13 @@ import {
   UseGuards,
   Get,
   Req,
+  Patch,
 } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
+import { Role } from '@prisma/client';
+import { AdminGuard } from './admin.gaurd';
 
 @Controller('auth')
 export class AuthController {
@@ -66,6 +69,22 @@ export class AuthController {
     res.clearCookie('accessToken', cookieOptions);
     res.clearCookie('refreshToken', cookieOptions);
     return { message: 'Logged out successfully' };
+  }
+  @Patch('rule')
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  async rulePermissions(
+    @Body() body: { userId: string; role: Role },
+    @Req() req: any,
+  ) {
+    const { userId, role } = body;
+    if (!userId || !role) {
+      return { message: 'User ID and role are required' };
+    }
+    if (userId === req.user.id) {
+      return { message: 'You cannot change your own role' };
+    }
+    const result = await this.authService.rulePermission(userId, role);
+    return { message: result.message };
   }
 
   private setAuthCookies(

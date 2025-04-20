@@ -15,6 +15,7 @@ import { ConfigModule } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
 import { SimulationModule } from './simulation/simulation.module';
 import { EventsModule } from './events/events.module';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { EventsModule } from './events/events.module';
     MailModule,
     CloudinaryModule,
     EventsModule,
+    UserModule,
   ],
   providers: [AppService],
 })

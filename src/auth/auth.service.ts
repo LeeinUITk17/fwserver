@@ -1,6 +1,6 @@
 import {
-  ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -108,21 +108,27 @@ export class AuthService {
 
     return { message: 'Logout successful' };
   }
-  async rulePermission(userId: string) {
-    const user = await this.prisma.user.findFirst({
-      where: { role: Role.ADMIN },
-      select: { role: true },
+  async rulePermission(userId: string, role: Role) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true },
     });
 
     if (!user) {
-      throw new NotFoundException(`User with ID ${userId} not found`);
+      throw new NotFoundException(`User with ID ${userId} not found.`);
     }
-    if (user.role !== Role.ADMIN) {
-      throw new ForbiddenException(
-        'You do not have permission for this action',
-      );
+    if (user.role === role) {
+      return { message: `User already has the role: ${role}` };
     }
+    try {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { role },
+      });
 
-    return { message: 'You have permission' };
+      return { message: `User role updated to ${role}` };
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to update user role.');
+    }
   }
 }
