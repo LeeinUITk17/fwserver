@@ -26,5 +26,22 @@ services:
     depends_on:
       - postgres
 
+     # --- Service AI Python (Thêm mới) ---
+  ai-service:
+    build:
+      context: ../fire-detection-ai-service # <<< Đường dẫn tới thư mục code AI service
+      dockerfile: Dockerfile
+    container_name: fire_ai_python
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - MODEL_PATH=/app/fire_detection_model.h5
+      - IMG_SIZE=256
+      - TZ=Asia/Ho_Chi_Minh
+    volumes:
+      - ai_logs:/app/logs
+    restart: unless-stopped
 volumes:
   fire_postgres_data:
+  ai_logs:

@@ -97,18 +97,28 @@ model Alert {
   viaEmail   Boolean  @default(false)
 }
 
+enum CameraStatus {
+  ONLINE
+  OFFLINE
+  RECORDING
+  ERROR
+}
+
 model Camera {
   id        String   @id @default(uuid())
   name      String
-  url       String   // RTSP or video URL
-  createdAt DateTime @default(now())
+  url       String   // RTSP, HTTP stream, etc.
   zoneId     String
-  alerts     Alert[]
-
+  zone       Zone   @relation(fields: [zoneId], references: [id])
   latitude    Float?
   longitude   Float?
-
-  zone       Zone   @relation(fields: [zoneId], references: [id])
+  createdAt DateTime @default(now())
+  // --- Thêm các trường mới ---
+  status       CameraStatus @default(ONLINE) // Trạng thái camera
+  isDetecting  Boolean      @default(false) // Bật/tắt phát hiện cháy
+  lastSnapshotUrl String?    // Lưu ảnh snapshot cuối (tùy chọn)
+  // --------------------------
+  alerts     Alert[]
 }
 
 enum AlertStatus {

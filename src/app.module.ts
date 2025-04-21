@@ -16,6 +16,8 @@ import { HttpModule } from '@nestjs/axios';
 import { SimulationModule } from './simulation/simulation.module';
 import { EventsModule } from './events/events.module';
 import { UserModule } from './user/user.module';
+import { ImageProcessingModule } from './image-processing/ImageProcessingModule';
+import { MlClientModule } from './ml-client/ml-client.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { UserModule } from './user/user.module';
     CloudinaryModule,
     EventsModule,
     UserModule,
+    ImageProcessingModule,
+    MlClientModule,
   ],
   providers: [AppService],
 })

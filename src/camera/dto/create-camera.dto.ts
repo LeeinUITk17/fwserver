@@ -4,17 +4,22 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsEnum,
+  IsBoolean,
+  IsUrl,
 } from 'class-validator';
+import { CameraStatus } from '@prisma/client';
 
 export class CreateCameraDto {
   @IsString()
   name: string;
 
-  @IsString()
+  @IsUrl()
   url: string;
 
   @IsString()
   zoneId: string;
+
   @IsOptional()
   @IsNumber()
   @IsLatitude()
@@ -24,4 +29,16 @@ export class CreateCameraDto {
   @IsNumber()
   @IsLongitude()
   longitude?: number | null;
+
+  @IsOptional()
+  @IsEnum(CameraStatus)
+  status?: CameraStatus;
+
+  @IsOptional()
+  @IsBoolean()
+  isDetecting?: boolean;
+
+  @IsOptional()
+  @IsString()
+  lastSnapshotUrl?: string;
 }

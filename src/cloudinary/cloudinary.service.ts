@@ -1,13 +1,17 @@
-/* eslint-disable prettier/prettier */
-import { Injectable } from '@nestjs/common';
-import { v2 as cloudinary } from 'cloudinary';
-import { CloudinaryResponse } from './cloudinary-response';
+import { Injectable, Logger } from '@nestjs/common';
+import {
+  v2 as cloudinary,
+  UploadApiResponse,
+  UploadApiErrorResponse,
+} from 'cloudinary';
 import * as streamifier from 'streamifier';
 
 @Injectable()
 export class CloudinaryService {
-  uploadFile(file: Express.Multer.File): Promise<CloudinaryResponse> {
-    return new Promise<CloudinaryResponse>((resolve, reject) => {
+  private readonly logger = new Logger(CloudinaryService.name);
+
+  uploadFile(file: Express.Multer.File): Promise<UploadApiResponse> {
+    return new Promise<UploadApiResponse>((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         (error, result) => {
           if (error) return reject(error);
@@ -18,10 +22,48 @@ export class CloudinaryService {
       streamifier.createReadStream(file.buffer).pipe(uploadStream);
     });
   }
-  uploadVideo(file: Express.Multer.File): Promise<CloudinaryResponse> {
-    return new Promise<CloudinaryResponse>((resolve, reject) => {
+
+  uploadBuffer(
+    buffer: Buffer,
+    publicId?: string,
+    folder?: string,
+  ): Promise<UploadApiResponse> {
+    return new Promise((resolve, reject) => {
+      const options: any = { resource_type: 'auto' };
+      if (publicId) options.public_id = publicId;
+      if (folder) options.folder = folder;
+
       const uploadStream = cloudinary.uploader.upload_stream(
-        { resource_type: 'video' }, 
+        options,
+        (
+          error: UploadApiErrorResponse | undefined,
+          result: UploadApiResponse | undefined,
+        ) => {
+          if (error) {
+            this.logger.error('Cloudinary uploadBuffer error:', error);
+            return reject(error);
+          }
+          if (!result) {
+            this.logger.error('Cloudinary uploadBuffer returned no result.');
+            return reject(
+              new Error('Cloudinary upload failed: No result returned.'),
+            );
+          }
+          this.logger.log(
+            `Buffer uploaded via uploadBuffer: ${result.public_id}`,
+          );
+          resolve(result);
+        },
+      );
+
+      streamifier.createReadStream(buffer).pipe(uploadStream);
+    });
+  }
+
+  uploadVideo(file: Express.Multer.File): Promise<UploadApiResponse> {
+    return new Promise<UploadApiResponse>((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { resource_type: 'video' },
         (error, result) => {
           if (error) return reject(error);
           resolve(result);
@@ -31,6 +73,7 @@ export class CloudinaryService {
       streamifier.createReadStream(file.buffer).pipe(uploadStream);
     });
   }
+
   deleteFile(publicId: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       cloudinary.uploader.destroy(publicId, (error) => {
