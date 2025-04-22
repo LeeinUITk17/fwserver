@@ -28,7 +28,8 @@
 
 ## Diagram
 
-<img width="626" alt="image" src="https://github.com/user-attachments/assets/1887938f-70c7-4e94-a486-c67d392be79b" />
+<img width="919" alt="image" src="https://github.com/user-attachments/assets/9d911727-4738-454b-9c9b-872eb4104d13" />
+
 
 ## Workflow
 
