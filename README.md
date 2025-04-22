@@ -34,6 +34,17 @@
 
 ![Graph-FireWolf-Workflow](https://github.com/user-attachments/assets/357e1552-0862-441b-90c2-d96279fef68c)
 
+## Logic Detection (Camera snapshot & Sensor)
+
+![Editor _ Mermaid Chart-2025-04-22-082604](https://github.com/user-attachments/assets/ec93529f-4537-4e56-a745-fe11b1ca22f5)
+
+
+
+## Authentication 
+
+![FireWolf_Authentication-2025-04-22-083043](https://github.com/user-attachments/assets/706a5886-1a7e-44cd-b5a8-884933d629e0)
+
+
 
 
 ## Installation
