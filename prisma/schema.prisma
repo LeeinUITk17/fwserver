@@ -85,8 +85,8 @@ model Alert {
   id         String   @id @default(uuid())
   message    String
   origin     AlertOrigin @default(SENSOR_THRESHOLD)
-  sensor     Sensor   @relation(fields: [sensorId], references: [id])
-  sensorId   String
+  sensor     Sensor?   @relation(fields: [sensorId], references: [id])
+  sensorId   String?
   user       User?    @relation(fields: [userId], references: [id])
   userId     String?
   cameraId   String?

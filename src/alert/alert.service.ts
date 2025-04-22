@@ -30,39 +30,53 @@ export class AlertService {
     createAlertDto: CreateAlertDto,
     file?: Express.Multer.File,
   ): Promise<Alert> {
-    let imageUrl: string | undefined = undefined;
+    let imageUrlFromUpload: string | undefined = undefined;
 
-    if (file) {
+    if (file && !createAlertDto.imageUrl) {
       try {
         const uploadResult = await this.cloudinary.uploadFile(file);
-        imageUrl = uploadResult.secure_url;
-      } catch (uploadError) {
+        imageUrlFromUpload = uploadResult.secure_url;
+        this.logger.log(
+          `File uploaded via AlertService create: ${imageUrlFromUpload}`,
+        );
+      } catch (uploadError: any) {
         this.logger.error(
-          `Cloudinary upload failed: ${uploadError.message}`,
+          `Cloudinary upload failed in AlertService create: ${uploadError.message}`,
           uploadError.stack,
         );
-        imageUrl = undefined;
       }
     }
 
-    const { sensorId, userId, ...rest } = createAlertDto;
+    const { sensorId, userId, cameraId, imageUrl, ...restDataFromDto } =
+      createAlertDto;
 
-    const createData: Prisma.AlertCreateInput = {
-      ...rest,
-      imageUrl: imageUrl,
-      sensor: { connect: { id: sensorId } },
+    const finalImageUrl = imageUrl ?? imageUrlFromUpload;
+
+    const dataToCreate: Prisma.AlertCreateInput = {
+      ...restDataFromDto,
+      imageUrl: finalImageUrl,
+      status: AlertStatus.PENDING,
+      camera: cameraId ? { connect: { id: cameraId } } : undefined,
+      sensor: sensorId ? { connect: { id: sensorId } } : undefined,
+      user: userId ? { connect: { id: userId } } : undefined,
     };
 
-    if (userId) {
-      createData.user = { connect: { id: userId } };
-    }
+    Object.keys(dataToCreate).forEach((key) => {
+      if (dataToCreate[key] === undefined) {
+        delete dataToCreate[key];
+      }
+    });
 
     try {
+      this.logger.debug(
+        `Attempting to create alert with prisma data: ${JSON.stringify(dataToCreate)}`,
+      );
       const newAlert = await this.prisma.alert.create({
-        data: createData,
+        data: dataToCreate,
       });
+      this.logger.log(`Successfully created alert ID: ${newAlert.id}`);
       return newAlert;
-    } catch (dbError) {
+    } catch (dbError: any) {
       this.logger.error(
         `Failed to create alert in DB: ${dbError.message}`,
         dbError.stack,

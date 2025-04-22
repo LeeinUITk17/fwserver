@@ -35,7 +35,7 @@ export class RealFireDetectionService {
     );
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_30_MINUTES)
   async handleCron() {
     this.logger.log('Running REAL Fire Detection Scan...');
     const camerasToScan = await this.prisma.camera.findMany({
