@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import * as dayjs from 'dayjs';
+import dayjs = require('dayjs');
 import { Role } from '@prisma/client';
 
 @Injectable()

@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateAlertDto } from './dto/create-alert.dto';
-import * as player from 'play-sound';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { Alert, AlertStatus, Prisma } from '@prisma/client';
 
@@ -21,14 +20,11 @@ interface FindAllAlertsQuery {
 @Injectable()
 export class AlertService {
   private readonly logger = new Logger(AlertService.name);
-  private audio;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly cloudinary: CloudinaryService,
-  ) {
-    this.audio = player();
-  }
+  ) {}
 
   async create(
     createAlertDto: CreateAlertDto,

@@ -7,7 +7,7 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateLogDto } from './dto/create-log.dto';
 import { UpdateLogDto } from './dto/update-log.dto';
-import * as dayjs from 'dayjs';
+import dayjs = require('dayjs');
 import { Prisma } from '@prisma/client';
 
 @Injectable()

@@ -80,4 +80,18 @@ export class CameraService {
       );
     }
   }
+  async findOneSimple(id: string) {
+    const camera = await this.prisma.camera.findUnique({
+      where: { id },
+      select: {
+        url: true,
+      },
+    });
+
+    if (!camera) {
+      throw new NotFoundException(`Camera with ID ${id} not found`);
+    }
+
+    return camera;
+  }
 }
